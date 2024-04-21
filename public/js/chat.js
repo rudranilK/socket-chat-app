@@ -1,26 +1,33 @@
 const socket = io();
 
+//Elements
+const $messageForm = document.getElementById("form");
+const $messageFormInput = $messageForm.querySelector("input");
+const $messageFormButton = $messageForm.querySelector("button");
+const $locationButton = document.getElementById('send-location');
+const $messages = document.querySelector('#messages');
+
+// Templates
+const messageTemplate = document.querySelector('#message-template').innerHTML;
+const locationTemplate = document.querySelector('#location-template').innerHTML;
+
 socket.on("message", (message) => {
-   // alert(`Server Responded with : ${message}`);
-   console.info(message);
+   console.info("Server sent : ", message);
+
+   //Render the message on html every time server sends it
+   const html = Mustache.render(messageTemplate, {
+      message
+   });
+   $messages.insertAdjacentHTML('beforeend', html);
 });
 
 // Add event listener to the send button
-// document.getElementById("sendButton").addEventListener("click", function (event) {
-//    event.preventDefault(); // Prevent form submission
 
-//    // Get the input value
-//    const inputMessage = document.getElementById("input-message").value;
-
-//    // Do something with the input value, such as sending it elsewhere
-//    socket.emit('sendMessage', inputMessage);
-
-//    // Clear the input field after processing
-//    document.getElementById("input-message").value = "";
-// });
-
-document.getElementById("form").addEventListener("submit", (event) => {
+$messageForm.addEventListener("submit", (event) => {
    event.preventDefault(); // Prevent form submission
+
+   //Disable button click
+   $messageFormButton.setAttribute('disabled', 'disabled');
 
    //* Get the input value
    // const inputMessage = document.getElementById("input-message").value;
@@ -29,22 +36,28 @@ document.getElementById("form").addEventListener("submit", (event) => {
    // Do something with the input value, such as sending it elsewhere
    if (inputElement.value) {
       socket.emit('sendMessage', inputElement.value, ({ err, status }) => {   //* Acknowledgement
+
+         //Enable button click
+         $messageFormButton.removeAttribute('disabled');
+         // Clear the input field after processing
+         $messageFormInput.value = '';
+         $messageFormInput.focus();
+
          if (err) {
             console.error(err);
          } else {
             console.info(`status, ${status}`)
          }
       });
-      // Clear the input field after processing
-      inputElement.value = '';
    }
 });
 
 //* Handeling different events differently
 
-socket.on('messageReceived', (message) => {  //*When server sends a new message
-   console.info("Server sent : ", message)
-});
+//* Handling it within 'message' event listner itself
+// socket.on('messageReceived', (message) => {  //*When server sends a new message
+//    console.info("Server sent : ", message)
+// });
 
 socket.on('newConnection', (message) => {  //*When a new client joins
    console.info("Server sent : ", message)
@@ -56,11 +69,14 @@ socket.on('dropConnection', (message) => {   //*When one client disconnects
 
 //* Geo-location
 
-document.getElementById('send-location').addEventListener("click", () => {
+$locationButton.addEventListener("click", () => {
 
    if (!navigator.geolocation) {
       return alert('Geolocation is not supported by your browser');
    }
+
+   //Disable button click
+   $locationButton.setAttribute('disabled', 'disabled');
 
    //Async function - using callbacks
    navigator.geolocation.getCurrentPosition((position) => {
@@ -70,6 +86,10 @@ document.getElementById('send-location').addEventListener("click", () => {
             lat: coords.latitude || null,
             long: coords.longitude || null,
          }), ({ err, status }) => {   //* Acknowledgement
+
+            //Enable button click
+            $locationButton.removeAttribute('disabled');
+
             if (err) {
                console.error(err);
             } else {
@@ -82,6 +102,12 @@ document.getElementById('send-location').addEventListener("click", () => {
 
 socket.on('clientLocation', (url) => {
    console.info(`New client joined from: ${url}`);
+
+   //Render the message on html every time server sends it
+   const html = Mustache.render(locationTemplate, {
+      url
+   });
+   $messages.insertAdjacentHTML('beforeend', html);
 
    //* `https://google.com/maps?q=${lat},${long}`
 });

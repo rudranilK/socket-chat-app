@@ -41,7 +41,7 @@ io.on('connection', (socket) => {
       }
 
       console.log(`Message from client: ${data}`);
-      io.emit('messageReceived', data);
+      io.emit('message', data);
       callback({
          status: 'ok'
       })
