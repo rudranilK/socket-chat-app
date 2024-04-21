@@ -42,8 +42,16 @@ io.on('connection', (socket) => {
          })
       }
 
+      const { err, user: userRoom } = getUser(socket.id);
+      if (err) {
+         return callback({ err });
+      }
+
+      const { room, username } = userRoom;
+
       console.log(`Message from client: ${data}`);
-      io.emit('message', generateMessage(data));
+      io.to(room).emit('message', generateMessage(username, data));
+
       callback({
          status: 'ok'
       })
@@ -56,12 +64,22 @@ io.on('connection', (socket) => {
          })
       }
 
-      const { lat, long } = JSON.parse(location);
-      // const url = `https://google.com/maps?q=${lat ? Number(lat).toFixed(5) : null},${long ? Number(long).toFixed(5) : null}`
+      const { err, user: userRoom } = getUser(socket.id);
+      if (err) {
+         return callback({ err });
+      }
 
-      const url = `https://google.com/maps?q=${lat || null},${long || null}`
+      const { room, username } = userRoom;
+
+      const { lat, long } = JSON.parse(location);
+      const url = `https://google.com/maps?q=${lat || null},${long || null}`;
+
       console.log(`Location received from client`);
-      socket.broadcast.emit('clientLocation', generateLocationMessage(url));
+
+      //* Should go to the current user as well
+      // socket.broadcast.to(room).emit('clientLocation', generateLocationMessage(url));
+      io.to(room).emit('clientLocation', generateLocationMessage(username, url));
+
       callback({
          status: 'ok'
       })
@@ -85,10 +103,10 @@ io.on('connection', (socket) => {
       console.log(`username: ${username} joined room ${room}`);
 
       //* Send message ONLY to the newly joined user
-      socket.emit('message', generateMessage("Welcome User!"));
+      socket.emit('message', generateMessage('system-bot', "Welcome User!"));
 
       //* Emits event to everybody in a SPECIFIC ROOM - except that new user
-      socket.broadcast.to(room).emit('message', generateMessage(`username: ${username} joined`));
+      socket.broadcast.to(room).emit('message', generateMessage('system-bot', `username: ${username} joined`));
 
       callback({
          status: 'ok'
@@ -105,7 +123,7 @@ io.on('connection', (socket) => {
       const { username, room } = user;
 
       //Everytime a user leaves the chat room
-      io.to(room).emit('message', generateMessage(`user ${username} left the room`));
+      io.to(room).emit('message', generateMessage('system-bot', `username: ${username} left the room`));
       console.log('user disconnected');
 
       // io.emit('dropConnection', 'A User left chat room!');

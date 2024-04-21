@@ -15,13 +15,16 @@ const locationTemplate = document.querySelector('#location-template').innerHTML;
 // const { username, room } = QueryString.parse(location.search, { ignoreQueryPrefix: true })
 const { username, room } = extractQS(location.search);
 
-socket.on("message", (message) => {
-   console.info("Server sent : ", message);
+socket.on("message", (data) => {
+   console.info("Server sent : ", data);
+
+   const { username, text: message, createdAt } = data;
 
    //Render the message on html every time server sends it
    const html = Mustache.render(messageTemplate, {
-      message: message.text,
-      createdAt: moment(message.createdAt).format('h:mm a')
+      username,
+      message,
+      createdAt: moment(createdAt).format('h:mm a')
    });
    $messages.insertAdjacentHTML('beforeend', html);
 });
@@ -49,6 +52,7 @@ $messageForm.addEventListener("submit", (event) => {
          $messageFormInput.focus();
 
          if (err) {
+            if (err.contains('Foul')) alert(err);
             console.error(err);
          } else {
             console.info(`status, ${status}`)
@@ -108,10 +112,13 @@ $locationButton.addEventListener("click", () => {
 socket.on('clientLocation', (data) => {
    console.info(`New client joined from: ${data.url}`);
 
+   const { username, url, createdAt } = data;
+
    //Render the message on html every time server sends it
    const html = Mustache.render(locationTemplate, {
-      url: data.url,
-      createdAt: moment(data.createdAt).format('h:mm a')
+      username,
+      url,
+      createdAt: moment(createdAt).format('h:mm a')
    });
    $messages.insertAdjacentHTML('beforeend', html);
 
