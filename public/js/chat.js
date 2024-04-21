@@ -11,6 +11,10 @@ const $messages = document.querySelector('#messages');
 const messageTemplate = document.querySelector('#message-template').innerHTML;
 const locationTemplate = document.querySelector('#location-template').innerHTML;
 
+// Options
+// const { username, room } = QueryString.parse(location.search, { ignoreQueryPrefix: true })
+const { username, room } = extractQS(location.search);
+
 socket.on("message", (message) => {
    console.info("Server sent : ", message);
 
@@ -113,3 +117,36 @@ socket.on('clientLocation', (data) => {
 
    //* `https://google.com/maps?q=${lat},${long}`
 });
+
+socket.emit('join', { username, room }, ({ err, status }) => {
+   if (err) {
+      alert(err);
+      location.href = '/';    // Re-route to index.html
+      console.error(err);
+   } else {
+      console.info(`status, ${status}`)
+   }
+});
+
+function extractQS(queryString) {
+   const regex = /[?&](username|room)=([^&]+)/g;
+
+   let match;
+   const params = {};
+
+   // Loop through each match found in the query string
+   while ((match = regex.exec(queryString))) {
+      // Extract the parameter name and value
+      const paramName = decodeURIComponent(match[1]);
+      const paramValue = decodeURIComponent(match[2]);
+
+      // Store the parameter in the params object
+      params[paramName] = paramValue;
+   }
+
+   // Extract the username and room from the params object
+   const username = params.username;
+   const room = params.room;
+
+   return { username, room };
+}

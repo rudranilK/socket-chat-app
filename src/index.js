@@ -7,6 +7,7 @@ import { dirname, join } from 'path';
 import { Server } from 'socket.io';
 import BadWordsFilter from 'bad-words';
 import { generateLocationMessage, generateMessage } from './utils/messages.js';
+import { addUser, removeUser, getUser, getUsersInRoom } from './utils/users.js';
 dotenv.config();
 
 const app = express();
@@ -28,10 +29,9 @@ io.on('connection', (socket) => {
 
    //* Broadcast: Everytime a new user joins the chat room
    // socket.broadcast.emit('newConnection', 'New User joined chat room!');
-   socket.broadcast.emit('message', generateMessage('New User joined chat room!'));
 
    //* Send message ONLY to the newly joined user
-   socket.emit('message', generateMessage("Welcome User!"));
+   // socket.emit('message', generateMessage("Welcome User!"));
 
    socket.on('sendMessage', (data, callback) => {
       const filter = new BadWordsFilter();
@@ -65,14 +65,51 @@ io.on('connection', (socket) => {
       callback({
          status: 'ok'
       })
-   })
+   });
+
+   socket.on('join', (options, callback) => {
+
+      const { err, user } = addUser({
+         id: socket.id,
+         username: options.username || '',
+         room: options.room || ''
+      });
+
+      if (err) {
+         return callback({ err });
+      }
+
+      const { username, room } = user;
+
+      socket.join(room);
+      console.log(`username: ${username} joined room ${room}`);
+
+      //* Send message ONLY to the newly joined user
+      socket.emit('message', generateMessage("Welcome User!"));
+
+      //* Emits event to everybody in a SPECIFIC ROOM - except that new user
+      socket.broadcast.to(room).emit('message', generateMessage(`username: ${username} joined`));
+
+      callback({
+         status: 'ok'
+      });
+   });
 
    socket.on('disconnect', () => {
-      console.log('user disconnected');
+      const { err, user } = removeUser(socket.id);
+
+      if (err) {
+         return console.error(err);
+      }
+
+      const { username, room } = user;
+
       //Everytime a user leaves the chat room
+      io.to(room).emit('message', generateMessage(`user ${username} left the room`));
+      console.log('user disconnected');
 
       // io.emit('dropConnection', 'A User left chat room!');
-      io.emit('message', generateMessage('A User left chat room!'));
+      // io.emit('message', generateMessage('A User left chat room!'));
    });
 });
 
