@@ -1,20 +1,22 @@
 const socket = io();
 
-//Elements
+//* Elements
 const $messageForm = document.getElementById("message-form");
 const $messageFormInput = $messageForm.querySelector("input");
 const $messageFormButton = $messageForm.querySelector("button");
 const $locationButton = document.getElementById('send-location');
 const $messages = document.querySelector('#messages');
 
-// Templates
+//* Templates
 const messageTemplate = document.querySelector('#message-template').innerHTML;
 const locationTemplate = document.querySelector('#location-template').innerHTML;
+const sidebarTemplate = document.querySelector('#sidebar-template').innerHTML;
 
-// Options
-// const { username, room } = QueryString.parse(location.search, { ignoreQueryPrefix: true })
+//* Options
 const { username, room } = extractQS(location.search);
+// const { username, room } = qs.parse(location.search, { ignoreQueryPrefix: true })
 
+//* Incoming Messages
 socket.on("message", (data) => {
    console.info("Server sent : ", data);
 
@@ -29,8 +31,46 @@ socket.on("message", (data) => {
    $messages.insertAdjacentHTML('beforeend', html);
 });
 
-// Add event listener to the send button
+//* Incoming Geo-location messages
+socket.on('clientLocation', (data) => {
+   console.info(`New client joined from: ${data.url}`);
 
+   const { username, url, createdAt } = data;
+
+   //Render the message on html every time server sends it
+   const html = Mustache.render(locationTemplate, {
+      username,
+      url,
+      createdAt: moment(createdAt).format('h:mm a')
+   });
+   $messages.insertAdjacentHTML('beforeend', html);
+
+   //* `https://google.com/maps?q=${lat},${long}`
+});
+
+//* Incoming updated room list
+socket.on('roomData', (data) => {
+   const { room, users } = data;
+
+   const html = Mustache.render(sidebarTemplate, {
+      room,
+      users
+   });
+   document.querySelector('#sidebar').innerHTML = html;
+})
+
+//* When a new user joins
+socket.emit('join', { username, room }, ({ err, status }) => {
+   if (err) {
+      alert(err);
+      location.href = '/';    // Re-route to index.html
+      console.error(err);
+   } else {
+      console.info(`status, ${status}`)
+   }
+});
+
+// Add event listener to the send button
 $messageForm.addEventListener("submit", (event) => {
    event.preventDefault(); // Prevent form submission
 
@@ -61,23 +101,7 @@ $messageForm.addEventListener("submit", (event) => {
    }
 });
 
-//* Handeling different events differently
-
-//! Handling the below events within 'message' event listner itself
-// socket.on('messageReceived', (message) => {  //*When server sends a new message
-//    console.info("Server sent : ", message)
-// });
-
-// socket.on('newConnection', (message) => {  //*When a new client joins
-//    console.info("Server sent : ", message)
-// });
-
-// socket.on('dropConnection', (message) => {   //*When one client disconnects
-//    console.info("Server sent : ", message)
-// });
-
 //* Geo-location
-
 $locationButton.addEventListener("click", () => {
 
    if (!navigator.geolocation) {
@@ -109,32 +133,7 @@ $locationButton.addEventListener("click", () => {
    })
 });
 
-socket.on('clientLocation', (data) => {
-   console.info(`New client joined from: ${data.url}`);
-
-   const { username, url, createdAt } = data;
-
-   //Render the message on html every time server sends it
-   const html = Mustache.render(locationTemplate, {
-      username,
-      url,
-      createdAt: moment(createdAt).format('h:mm a')
-   });
-   $messages.insertAdjacentHTML('beforeend', html);
-
-   //* `https://google.com/maps?q=${lat},${long}`
-});
-
-socket.emit('join', { username, room }, ({ err, status }) => {
-   if (err) {
-      alert(err);
-      location.href = '/';    // Re-route to index.html
-      console.error(err);
-   } else {
-      console.info(`status, ${status}`)
-   }
-});
-
+//* Utility function
 function extractQS(queryString) {
    const regex = /[?&](username|room)=([^&]+)/g;
 
@@ -157,3 +156,18 @@ function extractQS(queryString) {
 
    return { username, room };
 }
+
+//* Handeling different events differently
+
+//! Handling the below events within 'message' event listner itself
+// socket.on('messageReceived', (message) => {  //*When server sends a new message
+//    console.info("Server sent : ", message)
+// });
+
+// socket.on('newConnection', (message) => {  //*When a new client joins
+//    console.info("Server sent : ", message)
+// });
+
+// socket.on('dropConnection', (message) => {   //*When one client disconnects
+//    console.info("Server sent : ", message)
+// });

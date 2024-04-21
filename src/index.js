@@ -108,6 +108,12 @@ io.on('connection', (socket) => {
       //* Emits event to everybody in a SPECIFIC ROOM - except that new user
       socket.broadcast.to(room).emit('message', generateMessage('system-bot', `username: ${username} joined`));
 
+      // Send updated list to client side
+      io.to(room).emit('roomData', {
+         room,
+         users: getUsersInRoom(room)
+      });
+
       callback({
          status: 'ok'
       });
@@ -128,6 +134,12 @@ io.on('connection', (socket) => {
 
       // io.emit('dropConnection', 'A User left chat room!');
       // io.emit('message', generateMessage('A User left chat room!'));
+
+      // Send updated list to client side
+      io.to(room).emit('roomData', {
+         room,
+         users: getUsersInRoom(room)
+      });
    });
 });
 

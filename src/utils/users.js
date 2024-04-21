@@ -61,6 +61,9 @@ export const getUser = (id) => {
 }
 
 export const getUsersInRoom = (roomname) => {
-   const userRooms = userRooms.filter(el => el.room.toLowerCase() === roomname.toLowerCase());
-   return userRooms;
+   const userRoomRels = userRooms.filter(el => el.room.toLowerCase() === roomname.toLowerCase()).map(el => {
+      const { id, username } = el;
+      return { id, username };
+   });
+   return userRoomRels;
 }
