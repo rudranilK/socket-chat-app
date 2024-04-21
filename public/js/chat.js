@@ -1,7 +1,7 @@
 const socket = io();
 
 //Elements
-const $messageForm = document.getElementById("form");
+const $messageForm = document.getElementById("message-form");
 const $messageFormInput = $messageForm.querySelector("input");
 const $messageFormButton = $messageForm.querySelector("button");
 const $locationButton = document.getElementById('send-location');
@@ -16,7 +16,8 @@ socket.on("message", (message) => {
 
    //Render the message on html every time server sends it
    const html = Mustache.render(messageTemplate, {
-      message
+      message: message.text,
+      createdAt: moment(message.createdAt).format('h:mm a')
    });
    $messages.insertAdjacentHTML('beforeend', html);
 });
@@ -30,8 +31,8 @@ $messageForm.addEventListener("submit", (event) => {
    $messageFormButton.setAttribute('disabled', 'disabled');
 
    //* Get the input value
-   // const inputMessage = document.getElementById("input-message").value;
-   const inputElement = event.target.elements['input-message'];
+   // const inputMessage = document.getElementById("message").value;
+   const inputElement = event.target.elements['message'];
 
    // Do something with the input value, such as sending it elsewhere
    if (inputElement.value) {
@@ -54,18 +55,18 @@ $messageForm.addEventListener("submit", (event) => {
 
 //* Handeling different events differently
 
-//* Handling it within 'message' event listner itself
+//! Handling the below events within 'message' event listner itself
 // socket.on('messageReceived', (message) => {  //*When server sends a new message
 //    console.info("Server sent : ", message)
 // });
 
-socket.on('newConnection', (message) => {  //*When a new client joins
-   console.info("Server sent : ", message)
-});
+// socket.on('newConnection', (message) => {  //*When a new client joins
+//    console.info("Server sent : ", message)
+// });
 
-socket.on('dropConnection', (message) => {   //*When one client disconnects
-   console.info("Server sent : ", message)
-});
+// socket.on('dropConnection', (message) => {   //*When one client disconnects
+//    console.info("Server sent : ", message)
+// });
 
 //* Geo-location
 
@@ -100,12 +101,13 @@ $locationButton.addEventListener("click", () => {
    })
 });
 
-socket.on('clientLocation', (url) => {
-   console.info(`New client joined from: ${url}`);
+socket.on('clientLocation', (data) => {
+   console.info(`New client joined from: ${data.url}`);
 
    //Render the message on html every time server sends it
    const html = Mustache.render(locationTemplate, {
-      url
+      url: data.url,
+      createdAt: moment(data.createdAt).format('h:mm a')
    });
    $messages.insertAdjacentHTML('beforeend', html);
 

@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { Server } from 'socket.io';
 import BadWordsFilter from 'bad-words';
+import { generateLocationMessage, generateMessage } from './utils/messages.js';
 dotenv.config();
 
 const app = express();
@@ -26,10 +27,11 @@ io.on('connection', (socket) => {
    console.log('A user connected');
 
    //* Broadcast: Everytime a new user joins the chat room
-   socket.broadcast.emit('newConnection', 'New User joined chat room!');
+   // socket.broadcast.emit('newConnection', 'New User joined chat room!');
+   socket.broadcast.emit('message', generateMessage('New User joined chat room!'));
 
    //* Send message ONLY to the newly joined user
-   socket.emit('message', "Welcome User!");
+   socket.emit('message', generateMessage("Welcome User!"));
 
    socket.on('sendMessage', (data, callback) => {
       const filter = new BadWordsFilter();
@@ -41,7 +43,7 @@ io.on('connection', (socket) => {
       }
 
       console.log(`Message from client: ${data}`);
-      io.emit('message', data);
+      io.emit('message', generateMessage(data));
       callback({
          status: 'ok'
       })
@@ -59,7 +61,7 @@ io.on('connection', (socket) => {
 
       const url = `https://google.com/maps?q=${lat || null},${long || null}`
       console.log(`Location received from client`);
-      socket.broadcast.emit('clientLocation', url);
+      socket.broadcast.emit('clientLocation', generateLocationMessage(url));
       callback({
          status: 'ok'
       })
@@ -68,7 +70,9 @@ io.on('connection', (socket) => {
    socket.on('disconnect', () => {
       console.log('user disconnected');
       //Everytime a user leaves the chat room
-      io.emit('dropConnection', 'A User left chat room!');
+
+      // io.emit('dropConnection', 'A User left chat room!');
+      io.emit('message', generateMessage('A User left chat room!'));
    });
 });
 
